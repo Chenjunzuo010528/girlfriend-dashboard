@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F2E9E4">
+<title>小日常</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #F2E9E4;
+  --card: #FFFFFF;
+  --primary: #C9A9A6;
+  --primary-dark: #B08985;
+  --accent: #DDB892;
+  --text: #4A3F3B;
+  --text-light: #8D7B75;
+  --border: #E8DDD6;
+  --danger: #D4A0A0;
+  --success: #8BB89B;
+  --shadow: 0 2px 12px rgba(74, 63, 59, 0.06);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --font: -apple-system, "SF Pro Text", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  display: flex; flex-direction: column;
+  max-width: 480px; margin: 0 auto;
+  position: relative;
+}
+header {
+  padding: 44px 20px 12px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg);
+  position: sticky; top: 0; z-index: 10;
+}
+header h1 { font-size: 22px; font-weight: 700; letter-spacing: 0.5px; }
+header .date { font-size: 13px; color: var(--text-light); }
+main {
+  flex: 1; overflow-y: auto; padding: 0 16px 100px 16px;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+main::-webkit-scrollbar { display: none; }
+
+/* Bottom Nav */
+nav.tabs {
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 480px;
+  background: rgba(255,255,255,0.92); backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  display: flex; padding: 6px 8px env(safe-area-inset-bottom, 6px) 8px;
+  z-index: 100;
+}
+nav.tabs button {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: none; border: none; cursor: pointer;
+  font-size: 10px; color: var(--text-light); padding: 6px 0;
+  border-radius: 12px; transition: all 0.2s;
+  font-family: var(--font);
+  -webkit-tap-highlight-color: transparent;
+}
+nav.tabs button.active { color: var(--primary-dark); }
+nav.tabs button .icon { font-size: 22px; line-height: 1; }
+nav.tabs button.active .icon { transform: scale(1.1); }
+
+/* Module Section */
+.module { display: none; }
+.module.active { display: block; animation: fadeUp 0.3s ease; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Cards */
+.card {
+  background: var(--card); border-radius: var(--radius);
+  padding: 18px; margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.card-header h3 { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.card-header h3 .emoji { font-size: 18px; }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 8px 16px; border-radius: 20px; border: none;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  font-family: var(--font);
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:active { background: var(--primary-dark); transform: scale(0.97); }
+.btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 14px; }
+.btn-outline { background: none; border: 1.5px solid var(--primary); color: var(--primary-dark); }
+.btn-outline:active { background: var(--primary); color: #fff; }
+.btn-danger { background: none; border: none; color: var(--danger); font-size: 12px; padding: 4px 8px; }
+
+/* Forms */
+input, select {
+  width: 100%; padding: 12px 14px; border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 14px;
+  font-family: var(--font); color: var(--text);
+  background: var(--bg); transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+input:focus, select:focus { outline: none; border-color: var(--primary); }
+input::placeholder { color: #C4B8B0; }
+.form-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.form-row > * { flex: 1; }
+
+/* List items */
+.list-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 0; border-bottom: 1px solid var(--border);
+  gap: 10px;
+}
+.list-item:last-child { border-bottom: none; }
+.list-item .info { flex: 1; min-width: 0; }
+.list-item .title { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list-item .meta { font-size: 12px; color: var(--text-light); margin-top: 2px; }
+.list-item .amount { font-weight: 700; font-size: 15px; white-space: nowrap; }
+.list-item .amount.income { color: var(--success); }
+.list-item .amount.expense { color: var(--danger); }
+
+/* Summary cards */
+.summary-row { display: flex; gap: 10px; margin-bottom: 12px; }
+.summary-card {
+  flex: 1; background: var(--card); border-radius: var(--radius);
+  padding: 14px; text-align: center; box-shadow: var(--shadow);
+}
+.summary-card .label { font-size: 11px; color: var(--text-light); margin-bottom: 4px; }
+.summary-card .value { font-size: 20px; font-weight: 700; }
+.summary-card .value.income-v { color: var(--success); }
+.summary-card .value.expense-v { color: var(--danger); }
+.summary-card .value.balance-v { color: var(--primary-dark); }
+
+/* Habit / Daily */
+.habit-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.habit-row:last-child { border-bottom: none; }
+.habit-check {
+  width: 26px; height: 26px; border-radius: 50%;
+  border: 2px solid var(--border); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; transition: all 0.2s; flex-shrink: 0;
+}
+.habit-check.done { background: var(--success); border-color: var(--success); color: #fff; }
+.habit-row .habit-name { flex: 1; font-size: 14px; }
+.habit-row .habit-name.done-text { text-decoration: line-through; color: var(--text-light); }
+.habit-streak { font-size: 11px; color: var(--accent); font-weight: 600; }
+
+/* Todo */
+.todo-check {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid var(--border); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; transition: all 0.2s; flex-shrink: 0;
+}
+.todo-check.done { background: var(--success); border-color: var(--success); color: #fff; }
+.todo-text { font-size: 14px; }
+.todo-text.done-text { text-decoration: line-through; color: var(--text-light); }
+
+/* Calendar */
+.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.cal-header .month-label { font-size: 16px; font-weight: 700; }
+.cal-header button { background: none; border: none; font-size: 18px; cursor: pointer; padding: 6px 10px; color: var(--text); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+.cal-grid .day-name { font-size: 11px; color: var(--text-light); padding: 6px 0; font-weight: 600; }
+.cal-grid .day {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; font-size: 13px; cursor: pointer;
+  transition: all 0.15s; position: relative;
+}
+.cal-grid .day.other { color: #D0C8C2; }
+.cal-grid .day.today { background: var(--primary); color: #fff; font-weight: 700; }
+.cal-grid .day.bead { background: #F8E8D0; }
+.cal-grid .day.bead::after {
+  content: "🧩"; font-size: 8px; position: absolute;
+  bottom: 1px; right: 1px;
+}
+.cal-grid .day.today.bead { background: var(--primary); }
+.cal-grid .day:active { transform: scale(0.9); }
+
+/* Weight Chart */
+.chart-container { height: 180px; margin-bottom: 12px; position: relative; }
+
+/* Empty state */
+.empty { text-align: center; padding: 30px 0; color: var(--text-light); font-size: 13px; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.3);
+  z-index: 200; display: none; align-items: flex-end; justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.modal-sheet {
+  background: var(--card); border-radius: 20px 20px 0 0;
+  width: 100%; max-width: 480px; padding: 20px 16px 30px;
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal-sheet h3 { font-size: 16px; margin-bottom: 16px; text-align: center; }
+.modal-sheet .form-row { margin-bottom: 10px; }
+.modal-sheet .btn { width: 100%; justify-content: center; margin-top: 8px; padding: 12px; }
+
+/* FAB */
+.fab {
+  position: fixed; bottom: 110px; right: calc(50% - 200px);
+  width: 48px; height: 48px; border-radius: 50%;
+  background: var(--primary); color: #fff; border: none;
+  font-size: 24px; cursor: pointer; box-shadow: 0 4px 16px rgba(201, 169, 166, 0.4);
+  z-index: 99; display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.fab:active { transform: scale(0.93); }
+@media (max-width: 480px) { .fab { right: 16px; } }
+
+/* Quick action row */
+.quick-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.quick-action {
+  padding: 6px 14px; border-radius: 20px; border: 1.5px solid var(--primary);
+  background: none; color: var(--primary-dark); font-size: 12px;
+  cursor: pointer; font-family: var(--font); transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.quick-action:active { background: var(--primary); color: #fff; }
+
+/* Progress bar */
+.progress-bar {
+  height: 6px; background: var(--border); border-radius: 3px; margin-top: 8px; overflow: hidden;
+}
+.progress-fill { height: 100%; background: var(--success); border-radius: 3px; transition: width 0.4s; }
+
+/* Toast */
+.toast {
+  position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+  background: var(--text); color: #fff; padding: 10px 20px;
+  border-radius: 20px; font-size: 13px; z-index: 300;
+  opacity: 0; transition: opacity 0.3s; pointer-events: none;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🌷 小日常</h1>
+    <div class="date" id="headerDate"></div>
+  </div>
+  <div id="headerEmoji" style="font-size:28px;"></div>
+</header>
+
+<main id="mainContent"></main>
+
+<button class="fab" id="fabBtn" title="添加">+</button>
+
+<nav class="tabs" id="tabNav">
+  <button data-tab="money"><span class="icon">💰</span>记账</button>
+  <button data-tab="weight"><span class="icon">⚖️</span>体重</button>
+  <button data-tab="habits"><span class="icon">✅</span>日常</button>
+  <button data-tab="todos"><span class="icon">📝</span>待办</button>
+  <button data-tab="beads"><span class="icon">🧩</span>拼豆历</button>
+</nav>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-sheet" id="modalSheet"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ DATA STORE ============
+const STORE = {
+  _key(k) { return 'gd_' + k; },
+  get(k, def) { try { const v = localStorage.getItem(this._key(k)); return v ? JSON.parse(v) : def; } catch(e) { return def; } },
+  set(k, v) { localStorage.setItem(this._key(k), JSON.stringify(v)); }
+};
+
+// ============ HELPERS ============
+const $ = (s, p) => (p || document).querySelector(s);
+const $$ = (s, p) => [...(p || document).querySelectorAll(s)];
+function fmtDate(d) { const m=d.getMonth()+1, day=d.getDate(); return `${m}月${day}日`; }
+function fmtMoney(n) { return n.toFixed(2); }
+function todayStr() { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function toast(msg) { const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800); }
+function genId() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+// ============ STATE ============
+let currentTab = 'habits';
+let currentMonth = new Date().getMonth();
+let currentYear = new Date().getFullYear();
+let activeModal = null;
+
+// ============ HEADER ============
+function updateHeader() {
+  const now = new Date();
+  $('#headerDate').textContent = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 ${['日','一','二','三','四','五','六'][now.getDay()]}`;
+  const h = now.getHours();
+  const emojis = h<6?'🌙':h<9?'☀️':h<12?'🌸':h<14?'🍃':h<18?'🌤️':h<21?'🌆':'🌙';
+  $('#headerEmoji').textContent = emojis;
+}
+
+// ============ TOAST ============
+
+// ============ TAB SWITCHING ============
+function switchTab(tab) {
+  currentTab = tab;
+  $$('button[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  renderModule(tab);
+  // FAB visibility
+  const fab = $('#fabBtn');
+  fab.style.display = ['habits','beads'].includes(tab) ? 'none' : 'flex';
+}
+
+// ============ RENDER ROUTER ============
+function renderModule(tab) {
+  const main = $('#mainContent');
+  switch(tab) {
+    case 'money': renderMoney(main); break;
+    case 'weight': renderWeight(main); break;
+    case 'habits': renderHabits(main); break;
+    case 'todos': renderTodos(main); break;
+    case 'beads': renderBeads(main); break;
+  }
+}
+
+// ============ MONEY MODULE ============
+function renderMoney(main) {
+  const records = STORE.get('money', []);
+  const now = new Date();
+  const thisMonth = records.filter(r => {
+    const d = new Date(r.date);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+  const income = thisMonth.filter(r => r.type === 'income').reduce((s,r) => s + r.amount, 0);
+  const expense = thisMonth.filter(r => r.type === 'expense').reduce((s,r) => s + r.amount, 0);
+  const recent = [...records].sort((a,b) => b.date.localeCompare(a.date)).slice(0, 15);
+
+  const cats = { food:'🍔', shop:'🛍️', transport:'🚗', entertainment:'🎮', daily:'🏠', health:'💊', other:'📌' };
+  const catExpense = {};
+  thisMonth.filter(r=>r.type==='expense').forEach(r => { catExpense[r.cat] = (catExpense[r.cat]||0) + r.amount; });
+  const topCat = Object.entries(catExpense).sort((a,b)=>b[1]-a[1])[0];
+
+  main.innerHTML = `
+    <div class="summary-row">
+      <div class="summary-card"><div class="label">收入</div><div class="value income-v">+${fmtMoney(income)}</div></div>
+      <div class="summary-card"><div class="label">支出</div><div class="value expense-v">-${fmtMoney(expense)}</div></div>
+      <div class="summary-card"><div class="label">结余</div><div class="value balance-v">${fmtMoney(income-expense)}</div></div>
+    </div>
+    <div class="quick-actions">
+      <button class="quick-action" onclick="openMoneyModal('expense')">💸 记支出</button>
+      <button class="quick-action" onclick="openMoneyModal('income')">💰 记收入</button>
+      ${topCat ? `<span style="font-size:12px;color:var(--text-light);align-self:center;margin-left:auto;">最大开销: ${cats[topCat[0]]||'📌'} ${topCat[0]} ¥${fmtMoney(topCat[1])}</span>` : ''}
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>📋 最近记录</h3></div>
+      ${recent.length === 0 ? '<div class="empty">还没有记账记录，开始记录吧~</div>' : recent.map(r => `
+        <div class="list-item">
+          <span style="font-size:20px;">${cats[r.cat]||'📌'}</span>
+          <div class="info">
+            <div class="title">${r.note || r.cat}</div>
+            <div class="meta">${r.date} · ${r.type==='income'?'收入':'支出'}</div>
+          </div>
+          <span class="amount ${r.type}">${r.type==='income'?'+':'-'}¥${fmtMoney(r.amount)}</span>
+          <button class="btn-danger" onclick="deleteMoney('${r.id}')">✕</button>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function openMoneyModal(type) {
+  const cats = [
+    {v:'food',l:'🍔 餐饮'},{v:'shop',l:'🛍️ 购物'},{v:'transport',l:'🚗 交通'},
+    {v:'entertainment',l:'🎮 娱乐'},{v:'daily',l:'🏠 日用'},{v:'health',l:'💊 健康'},
+    {v:'other',l:'📌 其他'}
+  ];
+  showModal(type==='expense'?'💸 记一笔支出':'💰 记一笔收入', `
+    <div class="form-row">
+      <input type="number" id="mAmount" placeholder="金额" step="0.01" min="0.01" inputmode="decimal">
+    </div>
+    <div class="form-row">
+      <select id="mCat">${cats.map(c=>`<option value="${c.v}">${c.l}</option>`).join('')}</select>
+    </div>
+    <div class="form-row">
+      <input type="date" id="mDate" value="${todayStr()}">
+    </div>
+    <div class="form-row">
+      <input type="text" id="mNote" placeholder="备注（可选）">
+    </div>
+    <button class="btn btn-primary" id="mSave">保存</button>
+  `);
+  $('#mSave').onclick = () => {
+    const amount = parseFloat($('#mAmount').value);
+    if (!amount || amount <= 0) { toast('请输入金额'); return; }
+    const records = STORE.get('money', []);
+    records.push({ id: genId(), type, amount, cat: $('#mCat').value, date: $('#mDate').value, note: $('#mNote').value });
+    STORE.set('money', records);
+    closeModal();
+    renderModule('money');
+    toast('已记录 ✅');
+  };
+}
+
+function deleteMoney(id) {
+  if (!confirm('删除这条记录？')) return;
+  const records = STORE.get('money', []);
+  STORE.set('money', records.filter(r => r.id !== id));
+  renderModule('money');
+}
+
+// ============ WEIGHT MODULE ============
+let weightChart = null;
+function renderWeight(main) {
+  const records = STORE.get('weight', []).sort((a,b) => a.date.localeCompare(b.date));
+  const latest = records.length > 0 ? records[records.length-1] : null;
+
+  main.innerHTML = `
+    <div class="summary-row">
+      <div class="summary-card">
+        <div class="label">最新体重</div>
+        <div class="value" style="color:var(--primary-dark)">${latest ? latest.weight + ' kg' : '--'}</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">记录天数</div>
+        <div class="value" style="color:var(--accent)">${records.length}</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">趋势</div>
+        <div class="value" style="font-size:14px;">
+          ${records.length>=2 ? (records[records.length-1].weight < records[0].weight ? '📉 下降中' : records[records.length-1].weight > records[0].weight ? '📈 上升中' : '➡️ 持平') : '--'}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <h3>📈 体重趋势</h3>
+        <button class="btn btn-sm btn-outline" onclick="openWeightModal()">+ 记录</button>
+      </div>
+      <div class="chart-container"><canvas id="weightChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>📋 历史记录</h3></div>
+      ${records.length === 0 ? '<div class="empty">还没有体重记录~</div>' : [...records].reverse().slice(0,15).map(r => `
+        <div class="list-item">
+          <span style="font-size:20px;">⚖️</span>
+          <div class="info"><div class="title">${r.weight} kg</div><div class="meta">${r.date}</div></div>
+          <button class="btn-danger" onclick="deleteWeight('${r.id}')">✕</button>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  if (records.length > 0) {
+    setTimeout(() => {
+      if (weightChart) weightChart.destroy();
+      const ctx = $('#weightChart');
+      if (!ctx) return;
+      weightChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: records.map(r => r.date.slice(5)),
+          datasets: [{
+            label: '体重 (kg)',
+            data: records.map(r => r.weight),
+            borderColor: '#C9A9A6',
+            backgroundColor: 'rgba(201,169,166,0.1)',
+            fill: true,
+            tension: 0.4,
+            pointRadius: 3,
+            pointBackgroundColor: '#C9A9A6',
+            borderWidth: 2,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+            y: { grid: { color: '#F0EBE7' }, ticks: { font: { size: 10 } } }
+          }
+        }
+      });
+    }, 100);
+  }
+}
+
+function openWeightModal() {
+  showModal('⚖️ 记录体重', `
+    <div class="form-row"><input type="number" id="wWeight" placeholder="体重 (kg)" step="0.1" min="20" max="300" inputmode="decimal"></div>
+    <div class="form-row"><input type="date" id="wDate" value="${todayStr()}"></div>
+    <button class="btn btn-primary" id="wSave">保存</button>
+  `);
+  $('#wSave').onclick = () => {
+    const weight = parseFloat($('#wWeight').value);
+    if (!weight || weight < 20 || weight > 300) { toast('请输入合理的体重'); return; }
+    const records = STORE.get('weight', []);
+    // Update if same date exists
+    const date = $('#wDate').value;
+    const idx = records.findIndex(r => r.date === date);
+    if (idx >= 0) records[idx].weight = weight;
+    else records.push({ id: genId(), weight, date });
+    records.sort((a,b) => a.date.localeCompare(b.date));
+    STORE.set('weight', records);
+    closeModal();
+    renderModule('weight');
+    toast('已记录 ✅');
+  };
+}
+
+function deleteWeight(id) {
+  if (!confirm('删除这条记录？')) return;
+  const records = STORE.get('weight', []);
+  STORE.set('weight', records.filter(r => r.id !== id));
+  renderModule('weight');
+}
+
+// ============ HABITS MODULE ============
+function renderHabits(main) {
+  const habits = STORE.get('habits', [
+    { id: 'h1', name: '喝8杯水', icon: '💧' },
+    { id: 'h2', name: '运动30分钟', icon: '🏃‍♀️' },
+    { id: 'h3', name: '阅读30分钟', icon: '📖' },
+    { id: 'h4', name: '早睡(23点前)', icon: '😴' },
+    { id: 'h5', name: '护肤', icon: '✨' },
+  ]);
+  const today = todayStr();
+  const doneToday = STORE.get('habit_done', {});
+  const streak = STORE.get('habit_streak', {});
+
+  const doneCount = habits.filter(h => doneToday[h.id]).length;
+
+  main.innerHTML = `
+    <div class="summary-row">
+      <div class="summary-card">
+        <div class="label">今日完成</div>
+        <div class="value" style="color:var(--success)">${doneCount}/${habits.length}</div>
+      </div>
+      <div class="summary-card" style="flex:2;">
+        <div class="label">完成度</div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${habits.length?doneCount/habits.length*100:0}%"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <h3>🌿 每日打卡</h3>
+        <button class="btn btn-sm btn-outline" onclick="resetHabits()">重置</button>
+      </div>
+      ${habits.map(h => `
+        <div class="habit-row">
+          <div class="habit-check ${doneToday[h.id] ? 'done' : ''}" onclick="toggleHabit('${h.id}')">${doneToday[h.id] ? '✓' : ''}</div>
+          <span class="habit-name ${doneToday[h.id] ? 'done-text' : ''}">${h.icon} ${h.name}</span>
+          ${streak[h.id] ? `<span class="habit-streak">🔥 ${streak[h.id]}天</span>` : ''}
+        </div>
+      `).join('')}
+    </div>
+    <div class="card" style="margin-top:12px;">
+      <div class="card-header"><h3>⚙️ 自定义事项</h3></div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <input type="text" id="newHabitName" placeholder="新事项名称" style="flex:1;">
+        <input type="text" id="newHabitIcon" placeholder="图标" style="width:60px;text-align:center;" maxlength="2" value="⭐">
+      </div>
+      <button class="btn btn-sm btn-primary" onclick="addHabit()">添加</button>
+    </div>
+  `;
+}
+
+function toggleHabit(id) {
+  const today = todayStr();
+  const done = STORE.get('habit_done', {});
+  const streak = STORE.get('habit_streak', {});
+
+  if (done[id]) {
+    delete done[id];
+    if (streak[id]) streak[id] = Math.max(0, streak[id] - 1);
+  } else {
+    done[id] = true;
+    streak[id] = (streak[id] || 0) + 1;
+  }
+
+  STORE.set('habit_done', done);
+  STORE.set('habit_streak', streak);
+  renderModule('habits');
+}
+
+function resetHabits() {
+  if (!confirm('重置今日所有打卡？连续天数也会清零。')) return;
+  STORE.set('habit_done', {});
+  STORE.set('habit_streak', {});
+  renderModule('habits');
+  toast('已重置 ✅');
+}
+
+function addHabit() {
+  const name = $('#newHabitName').value.trim();
+  const icon = $('#newHabitIcon').value.trim() || '⭐';
+  if (!name) { toast('请输入事项名称'); return; }
+  const habits = STORE.get('habits', []);
+  habits.push({ id: genId(), name, icon: icon.slice(0,2) });
+  STORE.set('habits', habits);
+  renderModule('habits');
+  toast('已添加 ✅');
+}
+
+// ============ TODOS MODULE ============
+function renderTodos(main) {
+  const todos = STORE.get('todos', []);
+  const active = todos.filter(t => !t.done);
+  const completed = todos.filter(t => t.done);
+
+  main.innerHTML = `
+    <div class="summary-row">
+      <div class="summary-card">
+        <div class="label">待完成</div>
+        <div class="value" style="color:var(--danger)">${active.length}</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">已完成</div>
+        <div class="value" style="color:var(--success)">${completed.length}</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <h3>📌 待办事项</h3>
+        <button class="btn btn-sm btn-outline" onclick="openTodoModal()">+ 添加</button>
+      </div>
+      ${active.length === 0 ? '<div class="empty">暂无待办，轻松~ 🎉</div>' : active.map(t => `
+        <div class="list-item">
+          <div class="todo-check" onclick="toggleTodo('${t.id}')"></div>
+          <span class="todo-text" style="flex:1;">${t.text}</span>
+          <button class="btn-danger" onclick="deleteTodo('${t.id}')">✕</button>
+        </div>
+      `).join('')}
+    </div>
+    ${completed.length > 0 ? `
+    <div class="card">
+      <div class="card-header"><h3>✅ 已完成 (${completed.length})</h3></div>
+      ${completed.map(t => `
+        <div class="list-item">
+          <div class="todo-check done" onclick="toggleTodo('${t.id}')">✓</div>
+          <span class="todo-text done-text" style="flex:1;">${t.text}</span>
+          <button class="btn-danger" onclick="deleteTodo('${t.id}')">✕</button>
+        </div>
+      `).join('')}
+    </div>
+    ` : ''}
+  `;
+}
+
+function openTodoModal() {
+  showModal('📝 添加待办', `
+    <div class="form-row"><input type="text" id="todoText" placeholder="待办内容"></div>
+    <button class="btn btn-primary" id="todoSave">添加</button>
+  `);
+  $('#todoSave').onclick = () => {
+    const text = $('#todoText').value.trim();
+    if (!text) { toast('请输入待办内容'); return; }
+    const todos = STORE.get('todos', []);
+    todos.push({ id: genId(), text, done: false, date: todayStr() });
+    STORE.set('todos', todos);
+    closeModal();
+    renderModule('todos');
+  };
+}
+
+function toggleTodo(id) {
+  const todos = STORE.get('todos', []);
+  const t = todos.find(x => x.id === id);
+  if (t) t.done = !t.done;
+  STORE.set('todos', todos);
+  renderModule('todos');
+}
+
+function deleteTodo(id) {
+  const todos = STORE.get('todos', []);
+  STORE.set('todos', todos.filter(t => t.id !== id));
+  renderModule('todos');
+}
+
+// ============ BEADS CALENDAR MODULE ============
+function renderBeads(main) {
+  const beadDays = STORE.get('beads', {}); // { '2026-07-31': true }
+  const year = currentYear, month = currentMonth;
+  const monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const prevMonthDays = new Date(year, month, 0).getDate();
+  const today = new Date();
+
+  let html = '<div class="card"><div class="cal-header">';
+  html += `<button onclick="changeMonth(-1)">◀</button>`;
+  html += `<span class="month-label">🧩 ${year}年 ${monthNames[month]}</span>`;
+  html += `<button onclick="changeMonth(1)">▶</button>`;
+  html += '</div>';
+
+  html += '<div class="cal-grid">';
+  ['日','一','二','三','四','五','六'].forEach(d => html += `<div class="day-name">${d}</div>`);
+
+  // Prev month
+  for (let i = firstDay - 1; i >= 0; i--) {
+    const d = prevMonthDays - i;
+    html += `<div class="day other">${d}</div>`;
+  }
+
+  // Current month
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday = today.getFullYear()===year && today.getMonth()===month && today.getDate()===d;
+    const isBead = beadDays[ds];
+    let cls = 'day';
+    if (isToday) cls += ' today';
+    if (isBead) cls += ' bead';
+    html += `<div class="${cls}" onclick="toggleBeadDay('${ds}')">${d}</div>`;
+  }
+
+  // Next month
+  const remaining = 42 - firstDay - daysInMonth;
+  for (let d = 1; d <= Math.min(remaining, 14); d++) {
+    html += `<div class="day other">${d}</div>`;
+  }
+  html += '</div>';
+
+  // Legend + count
+  const beadCount = Object.keys(beadDays).filter(k => {
+    const [y,m] = k.split('-').map(Number);
+    return y === year && m === month + 1;
+  }).length;
+  html += `<div style="text-align:center;margin-top:12px;font-size:13px;color:var(--text-light);">本月拼豆 <b style="color:var(--primary-dark)">${beadCount}</b> 天 🧩</div>`;
+  html += '</div>';
+
+  main.innerHTML = html;
+}
+
+function toggleBeadDay(ds) {
+  const beads = STORE.get('beads', {});
+  if (beads[ds]) {
+    delete beads[ds];
+    toast('已取消标记');
+  } else {
+    beads[ds] = true;
+    toast('🧩 标记拼豆日~');
+  }
+  STORE.set('beads', beads);
+  renderModule('beads');
+}
+
+function changeMonth(delta) {
+  currentMonth += delta;
+  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  renderModule('beads');
+}
+
+// ============ MODAL ============
+function showModal(title, bodyHtml) {
+  $('#modalSheet').innerHTML = `<h3>${title}</h3>${bodyHtml}<button class="btn" style="background:#F0EBE7;width:100%;justify-content:center;margin-top:8px;" onclick="closeModal()">取消</button>`;
+  $('#modalOverlay').classList.add('show');
+}
+function closeModal() {
+  $('#modalOverlay').classList.remove('show');
+}
+$('#modalOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ============ FAB ============
+$('#fabBtn').addEventListener('click', () => {
+  switch(currentTab) {
+    case 'money': openMoneyModal('expense'); break;
+    case 'weight': openWeightModal(); break;
+    case 'todos': openTodoModal(); break;
+  }
+});
+
+// ============ TAB NAV ============
+$$('button[data-tab]').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+// ============ INIT ============
+updateHeader();
+switchTab('habits');
+setInterval(updateHeader, 60000);
+
+// ============ Register SW ============
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
