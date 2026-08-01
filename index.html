@@ -183,10 +183,17 @@ input::placeholder { color: #C4B8B0; }
 }
 .cal-grid .day.other { color: #D0C8C2; }
 .cal-grid .day.today { background: var(--primary); color: #fff; font-weight: 700; }
-.cal-grid .day.bead { background: #F8E8D0; }
-.cal-grid .day.bead::after {
-  content: "🧩"; font-size: 8px; position: absolute;
-  bottom: 1px; right: 1px;
+.cal-grid .day.bead { background: #F8E8D0; position: relative; }
+.cal-grid .day.bead::before {
+  content: ""; position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  border-radius: 6px; opacity: 0.45;
+}
+.cal-grid .day.bead.has-img { background: #F8E8D0; }
+.cal-grid .day.bead.has-img::after {
+  content: "🧩"; font-size: 7px; position: absolute;
+  bottom: 0px; right: 0px;
+  text-shadow: 0 0 1px #fff;
 }
 .cal-grid .day.today.bead { background: var(--primary); }
 .cal-grid .day:active { transform: scale(0.9); }
@@ -430,7 +437,7 @@ function renderWeight(main) {
     <div class="summary-row">
       <div class="summary-card">
         <div class="label">最新体重</div>
-        <div class="value" style="color:var(--primary-dark)">${latest ? latest.weight + ' kg' : '--'}</div>
+        <div class="value" style="color:var(--primary-dark)">${latest ? latest.weight + ' 斤' : '--'}</div>
       </div>
       <div class="summary-card">
         <div class="label">记录天数</div>
@@ -455,7 +462,7 @@ function renderWeight(main) {
       ${records.length === 0 ? '<div class="empty">还没有体重记录~</div>' : [...records].reverse().slice(0,15).map(r => `
         <div class="list-item">
           <span style="font-size:20px;">⚖️</span>
-          <div class="info"><div class="title">${r.weight} kg</div><div class="meta">${r.date}</div></div>
+          <div class="info"><div class="title">${r.weight} 斤</div><div class="meta">${r.date}</div></div>
           <button class="btn-danger" onclick="deleteWeight('${r.id}')">✕</button>
         </div>
       `).join('')}
@@ -472,7 +479,7 @@ function renderWeight(main) {
         data: {
           labels: records.map(r => r.date.slice(5)),
           datasets: [{
-            label: '体重 (kg)',
+            label: '体重 (斤)',
             data: records.map(r => r.weight),
             borderColor: '#C9A9A6',
             backgroundColor: 'rgba(201,169,166,0.1)',
@@ -499,13 +506,13 @@ function renderWeight(main) {
 
 function openWeightModal() {
   showModal('⚖️ 记录体重', `
-    <div class="form-row"><input type="number" id="wWeight" placeholder="体重 (kg)" step="0.1" min="20" max="300" inputmode="decimal"></div>
+    <div class="form-row"><input type="number" id="wWeight" placeholder="体重 (斤)" step="0.1" min="20" max="300" inputmode="decimal"></div>
     <div class="form-row"><input type="date" id="wDate" value="${todayStr()}"></div>
     <button class="btn btn-primary" id="wSave">保存</button>
   `);
   $('#wSave').onclick = () => {
     const weight = parseFloat($('#wWeight').value);
-    if (!weight || weight < 20 || weight > 300) { toast('请输入合理的体重'); return; }
+    if (!weight || weight < 30 || weight > 400) { toast('请输入合理的体重'); return; }
     const records = STORE.get('weight', []);
     // Update if same date exists
     const date = $('#wDate').value;
@@ -690,8 +697,9 @@ function deleteTodo(id) {
 }
 
 // ============ BEADS CALENDAR MODULE ============
+// beads storage: { '2026-07-31': 'base64image' } or { '2026-07-31': true } (legacy without img)
 function renderBeads(main) {
-  const beadDays = STORE.get('beads', {}); // { '2026-07-31': true }
+  const beadDays = STORE.get('beads', {});
   const year = currentYear, month = currentMonth;
   const monthNames = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
   const firstDay = new Date(year, month, 1).getDay();
@@ -714,15 +722,24 @@ function renderBeads(main) {
     html += `<div class="day other">${d}</div>`;
   }
 
-  // Current month
+  // Current month - collect bead data for inline style
+  const beadStyles = [];
   for (let d = 1; d <= daysInMonth; d++) {
     const ds = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const isToday = today.getFullYear()===year && today.getMonth()===month && today.getDate()===d;
-    const isBead = beadDays[ds];
+    const beadData = beadDays[ds];
+    const hasImg = beadData && typeof beadData === 'string' && beadData.startsWith('data:image');
+    const isBead = !!beadData;
     let cls = 'day';
     if (isToday) cls += ' today';
     if (isBead) cls += ' bead';
-    html += `<div class="${cls}" onclick="toggleBeadDay('${ds}')">${d}</div>`;
+    if (hasImg) cls += ' has-img';
+    let style = '';
+    if (hasImg) {
+      beadStyles.push(`#bd-${ds.replace(/-/g,'')}{background-image:url(${beadData})}`);
+      style = ` style="background-image:url(${beadData})"`;
+    }
+    html += `<div class="${cls}" id="bd-${ds.replace(/-/g,'')}" onclick="handleBeadClick('${ds}')">${d}</div>`;
   }
 
   // Next month
@@ -732,7 +749,7 @@ function renderBeads(main) {
   }
   html += '</div>';
 
-  // Legend + count
+  // Count
   const beadCount = Object.keys(beadDays).filter(k => {
     const [y,m] = k.split('-').map(Number);
     return y === year && m === month + 1;
@@ -743,17 +760,84 @@ function renderBeads(main) {
   main.innerHTML = html;
 }
 
-function toggleBeadDay(ds) {
+function handleBeadClick(ds) {
   const beads = STORE.get('beads', {});
-  if (beads[ds]) {
+  const beadData = beads[ds];
+  const hasImg = beadData && typeof beadData === 'string' && beadData.startsWith('data:image');
+
+  if (hasImg) {
+    // Show preview with delete option
+    showBeadPreview(ds, beadData);
+  } else if (beadData) {
+    // Legacy: just marked, no image - remove it
     delete beads[ds];
+    STORE.set('beads', beads);
+    renderModule('beads');
     toast('已取消标记');
   } else {
-    beads[ds] = true;
-    toast('🧩 标记拼豆日~');
+    // Not marked yet - open file picker
+    openBeadUpload(ds);
   }
+}
+
+function openBeadUpload(ds) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      compressImage(ev.target.result, 300, (compressed) => {
+        const beads = STORE.get('beads', {});
+        beads[ds] = compressed;
+        STORE.set('beads', beads);
+        renderModule('beads');
+        toast('🧩 拼豆已记录~');
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+}
+
+function showBeadPreview(ds, imgSrc) {
+  showModal(`🧩 ${ds} 拼豆`, `
+    <div style="text-align:center;margin-bottom:12px;">
+      <img src="${imgSrc}" style="max-width:100%;max-height:260px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.1);" />
+    </div>
+    <button class="btn btn-outline" style="width:100%;justify-content:center;margin-bottom:8px;" onclick="uploadNewBeadImage('${ds}')">🖼️ 替换图片</button>
+    <button class="btn" style="width:100%;justify-content:center;background:#F0EBE7;color:var(--danger);" onclick="deleteBeadDay('${ds}')">🗑️ 删除</button>
+  `);
+}
+
+function uploadNewBeadImage(ds) {
+  closeModal();
+  setTimeout(() => openBeadUpload(ds), 300);
+}
+
+function deleteBeadDay(ds) {
+  if (!confirm('确定删除这一天的拼豆记录？')) return;
+  const beads = STORE.get('beads', {});
+  delete beads[ds];
   STORE.set('beads', beads);
+  closeModal();
   renderModule('beads');
+  toast('已删除 🗑️');
+}
+
+function compressImage(dataUrl, maxWidth, callback) {
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    let w = img.width, h = img.height;
+    if (w > maxWidth) { h = h * maxWidth / w; w = maxWidth; }
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+    callback(canvas.toDataURL('image/jpeg', 0.7));
+  };
+  img.src = dataUrl;
 }
 
 function changeMonth(delta) {
