@@ -1,5 +1,5 @@
-const CACHE = 'gd-v1';
-const ASSETS = ['/', '/index.html', '/manifest.json'];
+const CACHE = 'gd-v2';
+const ASSETS = ['/girlfriend-dashboard/', '/girlfriend-dashboard/index.html', '/girlfriend-dashboard/manifest.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(() => {}));
