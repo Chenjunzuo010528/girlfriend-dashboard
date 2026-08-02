@@ -294,6 +294,42 @@ const STORE = {
   set(k, v) { localStorage.setItem(this._key(k), JSON.stringify(v)); }
 };
 
+// ============ PRESET SEED (体重历史数据,仅首次填充) ============
+(function seedPreset() {
+  try {
+    if (localStorage.getItem('gd_weight') !== null) return; // 已有数据则不动
+    const preset = [
+      {id:'seed-01', weight:152,  date:'2026-06-26'},
+      {id:'seed-02', weight:147,  date:'2026-07-06'},
+      {id:'seed-03', weight:144,  date:'2026-07-07'},
+      {id:'seed-04', weight:142.8,date:'2026-07-08'},
+      {id:'seed-05', weight:145.2,date:'2026-07-10'},
+      {id:'seed-06', weight:145.2,date:'2026-07-12'},
+      {id:'seed-07', weight:144.6,date:'2026-07-13'},
+      {id:'seed-08', weight:144.4,date:'2026-07-14'},
+      {id:'seed-09', weight:143.4,date:'2026-07-15'},
+      {id:'seed-10', weight:144,  date:'2026-07-16'},
+      {id:'seed-11', weight:143.6,date:'2026-07-17'},
+      {id:'seed-12', weight:145,  date:'2026-07-18'},
+      {id:'seed-13', weight:144.6,date:'2026-07-19'},
+      {id:'seed-14', weight:143.6,date:'2026-07-20'},
+      {id:'seed-15', weight:143.2,date:'2026-07-21'},
+      {id:'seed-16', weight:142,  date:'2026-07-22'},
+      {id:'seed-17', weight:141.4,date:'2026-07-23'},
+      {id:'seed-18', weight:141.6,date:'2026-07-24'},
+      {id:'seed-19', weight:142,  date:'2026-07-25'},
+      {id:'seed-20', weight:141,  date:'2026-07-26'},
+      {id:'seed-21', weight:140,  date:'2026-07-27'},
+      {id:'seed-22', weight:140.4,date:'2026-07-28'},
+      {id:'seed-23', weight:139.2,date:'2026-07-29'},
+      {id:'seed-24', weight:139.2,date:'2026-07-30'},
+      {id:'seed-25', weight:139.4,date:'2026-07-31'},
+      {id:'seed-26', weight:139.2,date:'2026-08-01'}
+    ];
+    STORE.set('weight', preset);
+  } catch(e) {}
+})();
+
 // ============ HELPERS ============
 const $ = (s, p) => (p || document).querySelector(s);
 const $$ = (s, p) => [...(p || document).querySelectorAll(s)];
